@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>쿠도 커뮤니케이션 웰컴가이드북</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+        .dark ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
+        
+        .thumbnail-card.active {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.3);
+        }
+        
+        .glass-panel {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-full flex flex-col font-sans transition-colors duration-200 overflow-hidden">
+
+    <!-- 상단 툴바 -->
+    <header class="h-16 bg-white/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 z-20 glass-panel shadow-sm shrink-0">
+        <!-- 좌측: 사이드바 토글 및 로고 -->
+        <div class="flex items-center space-x-3">
+            <button id="btn-toggle-sidebar" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="목록 열기/닫기">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-file-pdf text-red-500 text-2xl"></i>
+                <span class="font-bold text-lg hidden sm:inline-block">CUDO 가이드북</span>
+            </div>
+            <!-- 현재 문서 이름 -->
+            <span id="document-name" class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 max-w-[150px] sm:max-w-[250px] truncate ml-2 bg-slate-100 dark:bg-slate-700/50 px-2.5 py-1 rounded-full">
+                웰컴가이드북
+            </span>
+        </div>
+
+        <!-- 중앙: 페이지 이동 및 확대/축소 내비게이션 -->
+        <div class="flex items-center space-x-1 sm:space-x-2">
+            <button id="btn-prev-page" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="이전 페이지">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+
+            <div class="flex items-center space-x-1 text-sm font-medium">
+                <input type="number" id="input-page-num" min="1" value="1" class="w-12 text-center bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md py-1 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <span class="text-slate-400">/</span>
+                <span id="page-count" class="text-slate-500 dark:text-slate-400">0</span>
+            </div>
+
+            <button id="btn-next-page" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" title="다음 페이지">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <div class="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1 hidden sm:block"></div>
+
+            <button id="btn-zoom-out" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors hidden sm:block" title="축소">
+                <i class="fa-solid fa-magnifying-glass-minus"></i>
+            </button>
+
+            <select id="select-zoom" class="text-xs sm:text-sm bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md py-1 px-2 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="0.5">50%</option>
+                <option value="0.75">75%</option>
+                <option value="1.0">100%</option>
+                <option value="1.25">125%</option>
+                <option value="1.5">150%</option>
+                <option value="2.0">200%</option>
+                <option value="page-fit">페이지 맞춤</option>
+                <option value="page-width" selected>너비 맞춤</option>
+            </select>
+
+            <button id="btn-zoom-in" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors hidden sm:block" title="확대">
+                <i class="fa-solid fa-magnifying-glass-plus"></i>
+            </button>
+        </div>
+
+        <!-- 우측: 테마 및 전체화면 -->
+        <div class="flex items-center space-x-1 sm:space-x-2">
+            <button id="btn-toggle-theme" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="다크/라이트 모드">
+                <i class="fa-solid fa-moon dark:hidden text-slate-600"></i>
+                <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
+            </button>
+
+            <button id="btn-fullscreen" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors hidden sm:block" title="전체화면">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 컨테이너 영역 -->
+    <div class="flex-1 flex overflow-hidden relative">
+        <!-- 좌측 사이드바 -->
+        <aside id="sidebar" class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 z-10 -ml-64 sm:ml-0 shrink-0">
+            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">페이지 미리보기</span>
+                <span id="thumbnail-count" class="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full text-slate-500">0 P</span>
+            </div>
+            <div id="thumbnail-container" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+        </aside>
+
+        <!-- 메인 뷰어 영역 -->
+        <main id="viewer-container" class="flex-1 relative overflow-auto flex flex-col items-center justify-start p-4 sm:p-8 bg-slate-200/60 dark:bg-slate-950/60">
+            <div id="canvas-wrapper" class="relative shadow-2xl transition-transform duration-150 my-auto">
+                <canvas id="pdf-canvas" class="rounded-sm block bg-white"></canvas>
+            </div>
+
+            <!-- 로딩 스피너 -->
+            <div id="loading-spinner" class="absolute inset-0 bg-slate-900/20 dark:bg-slate-900/50 backdrop-blur-sm flex flex-col items-center justify-center z-30">
+                <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-slate-800/80 px-4 py-1.5 rounded-full shadow">가이드북을 불러오는 중...</span>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            pdfDoc: null,
+            pageNum: 1,
+            pageRendering: false,
+            pageNumPending: null,
+            scale: 1.0,
+            scaleMode: 'page-width',
+            sidebarOpen: true,
+            rotation: 0
+        };
+
+        // 영문 PDF 파일명 지정
+        const DEFAULT_PDF_URL = 'welcome.pdf';
+
+        const elements = {
+            canvas: document.getElementById('pdf-canvas'),
+            ctx: document.getElementById('pdf-canvas').getContext('2d'),
+            canvasWrapper: document.getElementById('canvas-wrapper'),
+            pageNumInput: document.getElementById('input-page-num'),
+            pageCount: document.getElementById('page-count'),
+            prevBtn: document.getElementById('btn-prev-page'),
+            nextBtn: document.getElementById('btn-next-page'),
+            zoomInBtn: document.getElementById('btn-zoom-in'),
+            zoomOutBtn: document.getElementById('btn-zoom-out'),
+            selectZoom: document.getElementById('select-zoom'),
+            sidebar: document.getElementById('sidebar'),
+            toggleSidebarBtn: document.getElementById('btn-toggle-sidebar'),
+            thumbnailContainer: document.getElementById('thumbnail-container'),
+            documentName: document.getElementById('document-name'),
+            loadingSpinner: document.getElementById('loading-spinner'),
+            themeBtn: document.getElementById('btn-toggle-theme'),
+            fullscreenBtn: document.getElementById('btn-fullscreen')
+        };
+
+        async function renderPage(num) {
+            state.pageRendering = true;
+            showLoading(true);
+
+            try {
+                const page = await state.pdfDoc.getPage(num);
+                let currentScale = state.scale;
+                const container = document.getElementById('viewer-container');
+                const padding = 64;
+                const unscaledViewport = page.getViewport({ scale: 1, rotation: state.rotation });
+
+                if (state.scaleMode === 'page-fit') {
+                    const scaleHeight = (container.clientHeight - padding) / unscaledViewport.height;
+                    const scaleWidth = (container.clientWidth - padding) / unscaledViewport.width;
+                    currentScale = Math.min(scaleHeight, scaleWidth);
+                } else if (state.scaleMode === 'page-width') {
+                    currentScale = (container.clientWidth - padding) / unscaledViewport.width;
+                }
+
+                const viewport = page.getViewport({ scale: currentScale, rotation: state.rotation });
+                elements.canvas.height = viewport.height;
+                elements.canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: elements.ctx,
+                    viewport: viewport
+                };
+
+                await page.render(renderContext).promise;
+                state.pageRendering = false;
+                showLoading(false);
+
+                if (state.pageNumPending !== null) {
+                    renderPage(state.pageNumPending);
+                    state.pageNumPending = null;
+                }
+
+                elements.pageNumInput.value = num;
+                updateNavigationButtons();
+                highlightActiveThumbnail(num);
+
+            } catch (error) {
+                console.error('Page Render Error:', error);
+                showLoading(false);
+                state.pageRendering = false;
+            }
+        }
+
+        function queueRenderPage(num) {
+            if (state.pageRendering) {
+                state.pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        async function loadPDF(source, name = '문서.pdf') {
+            showLoading(true);
+            elements.documentName.textContent = name;
+
+            try {
+                if (state.pdfDoc) {
+                    state.pdfDoc.destroy();
+                }
+
+                const loadingTask = pdfjsLib.getDocument(source);
+                state.pdfDoc = await loadingTask.promise;
+
+                elements.pageCount.textContent = state.pdfDoc.numPages;
+                elements.pageNumInput.max = state.pdfDoc.numPages;
+
+                generateThumbnails();
+                state.pageNum = 1;
+                renderPage(state.pageNum);
+
+            } catch (error) {
+                console.error('PDF Load Error:', error);
+                showLoading(false);
+                alert('가이드북 문서를 불러오는데 실패했습니다.\n' + error.message);
+            }
+        }
+
+        async function generateThumbnails() {
+            elements.thumbnailContainer.innerHTML = '';
+            document.getElementById('thumbnail-count').textContent = `${state.pdfDoc.numPages} P`;
+
+            for (let pageNum = 1; pageNum <= state.pdfDoc.numPages; pageNum++) {
+                const thumbCard = document.createElement('div');
+                thumbCard.className = `thumbnail-card p-2 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg cursor-pointer transition-all flex flex-col items-center`;
+                thumbCard.dataset.page = pageNum;
+
+                const canvas = document.createElement('canvas');
+                canvas.className = 'w-full h-auto rounded shadow-sm bg-white mb-1.5';
+                
+                const pageLabel = document.createElement('span');
+                pageLabel.className = 'text-xs text-slate-500 dark:text-slate-400 font-medium';
+                pageLabel.textContent = `${pageNum}`;
+
+                thumbCard.appendChild(canvas);
+                thumbCard.appendChild(pageLabel);
+                elements.thumbnailContainer.appendChild(thumbCard);
+
+                thumbCard.addEventListener('click', () => {
+                    state.pageNum = pageNum;
+                    queueRenderPage(state.pageNum);
+                });
+
+                state.pdfDoc.getPage(pageNum).then(page => {
+                    const viewport = page.getViewport({ scale: 0.2 });
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    page.render({ canvasContext: ctx, viewport: viewport });
+                });
+            }
+            highlightActiveThumbnail(state.pageNum);
+        }
+
+        function highlightActiveThumbnail(pageNum) {
+            const thumbnails = elements.thumbnailContainer.querySelectorAll('.thumbnail-card');
+            thumbnails.forEach(card => {
+                if (parseInt(card.dataset.page) === pageNum) {
+                    card.classList.add('active');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+        }
+
+        function updateNavigationButtons() {
+            elements.prevBtn.disabled = state.pageNum <= 1;
+            elements.nextBtn.disabled = state.pageNum >= state.pdfDoc.numPages;
+        }
+
+        function showLoading(show) {
+            if (show) {
+                elements.loadingSpinner.classList.remove('hidden');
+            } else {
+                elements.loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        // 이벤트 리스너
+        elements.prevBtn.addEventListener('click', () => {
+            if (state.pageNum <= 1) return;
+            state.pageNum--;
+            queueRenderPage(state.pageNum);
+        });
+
+        elements.nextBtn.addEventListener('click', () => {
+            if (state.pageNum >= state.pdfDoc.numPages) return;
+            state.pageNum++;
+            queueRenderPage(state.pageNum);
+        });
+
+        elements.pageNumInput.addEventListener('change', (e) => {
+            let val = parseInt(e.target.value);
+            if (isNaN(val)) val = 1;
+            val = Math.max(1, Math.min(state.pdfDoc.numPages, val));
+            state.pageNum = val;
+            queueRenderPage(state.pageNum);
+        });
+
+        elements.zoomInBtn.addEventListener('click', () => {
+            state.scaleMode = 'custom';
+            state.scale = Math.min(3.0, state.scale + 0.25);
+            elements.selectZoom.value = state.scale.toFixed(2);
+            queueRenderPage(state.pageNum);
+        });
+
+        elements.zoomOutBtn.addEventListener('click', () => {
+            state.scaleMode = 'custom';
+            state.scale = Math.max(0.25, state.scale - 0.25);
+            elements.selectZoom.value = state.scale.toFixed(2);
+            queueRenderPage(state.pageNum);
+        });
+
+        elements.selectZoom.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'page-fit' || val === 'page-width') {
+                state.scaleMode = val;
+            } else {
+                state.scaleMode = 'custom';
+                state.scale = parseFloat(val);
+            }
+            queueRenderPage(state.pageNum);
+        });
+
+        elements.toggleSidebarBtn.addEventListener('click', () => {
+            state.sidebarOpen = !state.sidebarOpen;
+            if (state.sidebarOpen) {
+                elements.sidebar.classList.remove('-ml-64');
+            } else {
+                elements.sidebar.classList.add('-ml-64');
+            }
+        });
+
+        elements.themeBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        elements.fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        });
+
+        // 페이지 로드 시 welcome.pdf 자동 출력
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPDF(DEFAULT_PDF_URL, '웰컴가이드북.pdf');
+        });
+
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (state.pdfDoc && (state.scaleMode === 'page-fit' || state.scaleMode === 'page-width')) {
+                    renderPage(state.pageNum);
+                }
+            }, 200);
+        });
+    </script>
+</body>
+</html>
